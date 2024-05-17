@@ -1,7 +1,8 @@
-import useBluetooth from "./modules/bluetooth.js";
-import useMoth from "./modules/moth.js";
-import { deviceControlMap } from "./modules/deviceProfile.js";
-import keepWebSocketAlive from "./modules/websocket.js";
+import useBluetooth from "../../../modules/bluetooth.js";
+import useMoth from "../../../modules/moth.js";
+import { deviceControlMap } from "../../../modules/deviceProfile.js";
+import keepWebSocketAlive from "../../../modules/websocket.js";
+import { initializeDOMElements, initializeVariables } from "./initialize.js";
 
 // tmp데이터====================================================
 const ssidInput = document.getElementById("ssidInput");
@@ -19,7 +20,11 @@ const {
   sendMediaServerInfoButton,
   openWebSocketButton,
   stopButton,
+  robotSelect,
+  robotNameInput,
+  messageView,
 } = initializeDOMElements();
+
 let {
   device,
   websocket,
@@ -28,41 +33,7 @@ let {
   selectedDeviceControlMap,
 } = initializeVariables();
 
-function initializeDOMElements() {
-  const pairButton = document.getElementById("pairButton");
-  const sendMediaServerInfoButton = document.getElementById(
-    "sendMediaServerInfoButton"
-  );
-  const openWebSocketButton = document.getElementById("openWebSocketButton");
-  const stopButton = document.getElementById("stopButton");
-
-  return {
-    pairButton,
-    sendMediaServerInfoButton,
-    openWebSocketButton,
-    stopButton,
-  };
-}
-
-function initializeVariables() {
-  let device;
-  let selectedDeviceControlMap;
-  let websocket;
-  let networkConfig = {};
-  let lastDirection;
-
-  return {
-    device,
-    selectedDeviceControlMap,
-    websocket,
-    networkConfig,
-    lastDirection,
-  };
-}
-
 async function bluetoothPairing() {
-  const robotSelect = document.getElementById("robotSelect");
-  const robotNameInput = document.getElementById("robotNameInput");
   selectedDeviceControlMap = deviceControlMap[robotSelect.value];
   device = await useBluetooth.connectToBluetoothDevice(
     selectedDeviceControlMap.namePrefix ?? undefined,
@@ -72,8 +43,6 @@ async function bluetoothPairing() {
 }
 
 async function sendMediaServerInfo() {
-  const robotSelect = document.getElementById("robotSelect");
-
   networkConfig = {
     ssid: ssidInput.value,
     password: passwordInput.value,
@@ -102,7 +71,7 @@ async function sendMediaServerInfo() {
         profile: robotSelect.value,
       },
     };
-    console.log(selectedDeviceControlMap);
+
     if (selectedDeviceControlMap.maxTransferSize) {
       useBluetooth.sendMessageToDeviceOverBluetooth(
         JSON.stringify(metricData),
@@ -188,8 +157,6 @@ async function handleKeyUp(e) {
 }
 
 function displayMessage(messageContent) {
-  const messageView = document.getElementById("messageView");
-
   if (typeof messageContent == "object") {
     messageContent = JSON.stringify(messageContent);
   }

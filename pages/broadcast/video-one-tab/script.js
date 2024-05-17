@@ -1,13 +1,9 @@
-import useMoth from "./modules/moth.js";
-import keepWebSocketAlive from "./modules/websocket.js";
-
-const host = document.getElementById("hostInput");
-const port = document.getElementById("portInput");
-host.value = "cobot.center";
-port.value = "8286";
+import useMoth from "../../../modules/moth.js";
+import keepWebSocketAlive from "../../../modules/websocket.js";
+import { initializeDOMElements } from "./initialize.js";
 
 const videoWebCodecsMap = {
-  h264: "avc1.42002A", // avc1.42E03C avc1.42002A
+  h264: "avc1.42002A",
   vp8: "vp8",
   vp9: "vp09.00.31.08",
   // av1: "av01.0.05M.10",
@@ -15,32 +11,24 @@ const videoWebCodecsMap = {
 
 const {
   checkCameraPermissionButton,
+  cameraPermissionLabel,
   findChannelsButton,
   publishButton,
   subscribeButton,
   stopButton,
+  resolutionSelect,
+  codecSelect,
+  bitrateInput,
+  framerateInput,
+  bitrateModeSelect,
+  channelSelect,
+  hostInput,
+  portInput,
+  videoElement,
+  keyframeIntervalInput,
 } = initializeDOMElements();
 
-function initializeDOMElements() {
-  const checkCameraPermissionButton = document.getElementById(
-    "checkCameraPermissionButton"
-  );
-  const findChannelsButton = document.getElementById("findChannelsButton");
-  const publishButton = document.getElementById("publishButton");
-  const subscribeButton = document.getElementById("subscribeButton");
-  const stopButton = document.getElementById("stopButton");
-
-  return {
-    checkCameraPermissionButton,
-    findChannelsButton,
-    publishButton,
-    subscribeButton,
-    stopButton,
-  };
-}
-
 function makeResolutionOptions() {
-  const resolutionSelect = document.getElementById("resolutionSelect");
   const resolutionOptions = ["640x480", "1280x720", "1920x1080"];
   for (let i = 0; i < resolutionOptions.length; i++) {
     const option = document.createElement("option");
@@ -53,9 +41,6 @@ function makeResolutionOptions() {
 async function checkCameraPermission() {
   try {
     const result = await navigator.permissions.query({ name: "camera" });
-    const cameraPermissionLabel = document.getElementById(
-      "cameraPermissionLabel"
-    );
     cameraPermissionLabel.innerHTML = result.state;
 
     if (result.state === "prompt") {
@@ -89,7 +74,6 @@ async function findCameraDevice() {
 }
 
 function updateCameraSelection(device) {
-  const cameraSelect = document.getElementById("cameraSelect");
   const option = document.createElement("option");
   option.value = device.deviceId;
   option.text = device.label;
@@ -97,9 +81,6 @@ function updateCameraSelection(device) {
 }
 
 async function findChannels() {
-  const hostInput = document.getElementById("hostInput");
-  const portInput = document.getElementById("portInput");
-
   const url = useMoth.getChannelListURL({
     host: hostInput.value,
     port: portInput.value,
@@ -110,7 +91,6 @@ async function findChannels() {
     const data = await response.json();
 
     data.forEach((channel) => {
-      const channelSelect = document.getElementById("channelSelect");
       const option = document.createElement("option");
 
       if (channel.state == 1) {
@@ -130,7 +110,6 @@ async function findChannels() {
 }
 
 async function getVideoSrcObject() {
-  const cameraSelect = document.getElementById("cameraSelect");
   const cameraId = cameraSelect.value;
   const constraints = {
     audio: false,
@@ -139,7 +118,6 @@ async function getVideoSrcObject() {
     },
   };
 
-  const videoElement = document.getElementById("videoElement");
   const stream = await navigator.mediaDevices
     .getUserMedia(constraints)
     .then((stream) => {
@@ -155,16 +133,6 @@ async function getVideoSrcObject() {
 
 async function publish() {
   const stream = await getVideoSrcObject();
-  const codecSelect = document.getElementById("codecSelect");
-  const resolutionSelect = document.getElementById("resolutionSelect");
-  const bitrateInput = document.getElementById("bitrateInput");
-  const framerateInput = document.getElementById("framerateInput");
-  const bitrateModeSelect = document.getElementById("bitrateModeSelect");
-
-  const channelSelect = document.getElementById("channelSelect");
-  const hostInput = document.getElementById("hostInput");
-  const portInput = document.getElementById("portInput");
-
   const serverURL = useMoth.setServiceURL({
     type: "pub",
     options: {
@@ -204,10 +172,6 @@ async function publish() {
       latencyMode: "realtime",
       avc: { format: "annexb" },
     };
-
-    const keyframeIntervalInput = document.getElementById(
-      "keyframeIntervalInput"
-    );
 
     await encode(
       stream,
@@ -261,11 +225,6 @@ async function encode(
 }
 
 async function subscribe() {
-  const channelSelect = document.getElementById("channelSelect");
-  const hostInput = document.getElementById("hostInput");
-  const portInput = document.getElementById("portInput");
-  const videoElement = document.getElementById("videoElement");
-
   const serverURL = useMoth.setServiceURL({
     type: "sub",
     options: {

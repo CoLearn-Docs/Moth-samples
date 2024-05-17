@@ -1,7 +1,8 @@
-import useBluetooth from "./modules/bluetooth.js";
-import useMoth from "./modules/moth.js";
-import { deviceControlMap } from "./modules/deviceProfile.js";
-import keepWebSocketAlive from "./modules/websocket.js";
+import useBluetooth from "../../../modules/bluetooth.js";
+import useMoth from "../../.../../../modules/moth.js";
+import { deviceControlMap } from "../../../modules/deviceProfile.js";
+import keepWebSocketAlive from "../../.../../../modules/websocket.js";
+import { initializeDOMElements, initializeVariables } from "./initialize.js";
 
 // tmp데이터====================================================
 const ssidInput = document.getElementById("ssidInput");
@@ -9,7 +10,7 @@ const passwordInput = document.getElementById("passwordInput");
 const hostInput = document.getElementById("hostInput");
 const portInput = document.getElementById("portInput");
 
-// ssidInput.value = "TeamGRITax";
+ssidInput.value = "TeamGRITax";
 passwordInput.value = "teamgrit8266";
 hostInput.value = "cobot.center";
 portInput.value = 8286;
@@ -20,7 +21,11 @@ const {
   openWebSocketButton,
   stopButton,
   videoElement,
+  robotSelect,
+  robotNameInput,
+  messageView,
 } = initializeDOMElements();
+
 let {
   device,
   websocket,
@@ -31,48 +36,9 @@ let {
   mediaStreamTrack,
 } = initializeVariables();
 
-function initializeDOMElements() {
-  const pairButton = document.getElementById("pairButton");
-  const sendMediaServerInfoButton = document.getElementById(
-    "sendMediaServerInfoButton"
-  );
-  const openWebSocketButton = document.getElementById("openWebSocketButton");
-  const stopButton = document.getElementById("stopButton");
-  const videoElement = document.getElementById("videoElement");
-
-  return {
-    pairButton,
-    sendMediaServerInfoButton,
-    openWebSocketButton,
-    stopButton,
-    videoElement,
-  };
-}
-
-function initializeVariables() {
-  let device;
-  let selectedDeviceControlMap;
-  let websocket;
-  let networkConfig = {};
-  let lastDirection;
-  let writer;
-  let mediaStreamTrack;
-
-  return {
-    device,
-    selectedDeviceControlMap,
-    websocket,
-    networkConfig,
-    lastDirection,
-    writer,
-    mediaStreamTrack,
-  };
-}
-
 async function bluetoothPairing() {
-  const robotSelect = document.getElementById("robotSelect");
-  const robotNameInput = document.getElementById("robotNameInput");
   selectedDeviceControlMap = deviceControlMap[robotSelect.value];
+
   device = await useBluetooth.connectToBluetoothDevice(
     selectedDeviceControlMap.namePrefix ?? undefined,
     selectedDeviceControlMap.serviceUUID
@@ -261,8 +227,6 @@ async function handleKeyUp(e) {
 }
 
 function displayMessage(messageContent) {
-  const messageView = document.getElementById("messageView");
-
   if (typeof messageContent == "object") {
     messageContent = JSON.stringify(messageContent);
   }

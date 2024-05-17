@@ -1,25 +1,13 @@
-import useBluetooth from "./modules/bluetooth.js";
-import useMoth from "./modules/moth.js";
-import { deviceControlMap } from "./modules/deviceProfile.js";
-import keepWebSocketAlive from "./modules/websocket.js";
-
+import useBluetooth from "../../../modules/bluetooth.js";
+import useMoth from "../../../modules/moth.js";
+import { deviceControlMap } from "../../../modules/deviceProfile.js";
+import keepWebSocketAlive from "../../../modules/websocket.js";
+import { initializeDOMElements, initializeVariables } from "./initialize.js";
 import {
   GestureRecognizer,
   FilesetResolver,
-  DrawingUtils,
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2";
 
-// tmp데이터====================================================
-const ssidInput = document.getElementById("ssidInput");
-const passwordInput = document.getElementById("passwordInput");
-const hostInput = document.getElementById("hostInput");
-const portInput = document.getElementById("portInput");
-
-ssidInput.value = "TeamGRITax";
-passwordInput.value = "teamgrit8266";
-hostInput.value = "cobot.center";
-portInput.value = 8286;
-// ===========================================================
 const {
   pairButton,
   sendMediaServerInfoButton,
@@ -28,7 +16,12 @@ const {
   videoElement,
   userVideoElement,
   showCameraButton,
+  cameraSelect,
+  robotSelect,
+  robotNameInput,
+  messageView,
 } = initializeDOMElements();
+
 let {
   device,
   websocket,
@@ -41,63 +34,20 @@ let {
   runningMode,
 } = initializeVariables();
 
-function initializeDOMElements() {
-  const pairButton = document.getElementById("pairButton");
-  const sendMediaServerInfoButton = document.getElementById(
-    "sendMediaServerInfoButton"
-  );
-  const openWebSocketButton = document.getElementById("openWebSocketButton");
-  const stopButton = document.getElementById("stopButton");
-  const videoElement = document.getElementById("videoElement");
-  const userVideoElement = document.getElementById("userVideoElement");
-  const showCameraButton = document.getElementById("showCamera");
-
-  return {
-    pairButton,
-    sendMediaServerInfoButton,
-    openWebSocketButton,
-    stopButton,
-    videoElement,
-    userVideoElement,
-    showCameraButton,
-  };
-}
-
-function initializeVariables() {
-  let device;
-  let selectedDeviceControlMap;
-  let websocket;
-  let networkConfig = {};
-  let lastDirection;
-  let writer;
-  let mediaStreamTrack;
-  let gestureRecognizer;
-  let runningMode = "IMAGE";
-
-  return {
-    device,
-    selectedDeviceControlMap,
-    websocket,
-    networkConfig,
-    lastDirection,
-    writer,
-    mediaStreamTrack,
-    gestureRecognizer,
-    runningMode,
-  };
-}
-
 /**
  * create gesture recognizer
  */
+
+const VISION_TASKS_URL =
+  "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2/wasm";
+const MODEL_ASSET_PATH =
+  "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task";
+
 async function createGestureRecognizer() {
-  const vision = await FilesetResolver.forVisionTasks(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2/wasm"
-  );
+  const vision = await FilesetResolver.forVisionTasks(VISION_TASKS_URL);
   gestureRecognizer = await GestureRecognizer.createFromOptions(vision, {
     baseOptions: {
-      modelAssetPath:
-        "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task",
+      modelAssetPath: MODEL_ASSET_PATH,
       delegate: "GPU",
     },
     runningMode: runningMode,
@@ -161,7 +111,6 @@ async function findCameraDevice() {
 }
 
 function updateCameraSelection(device) {
-  const cameraSelect = document.getElementById("cameraSelect");
   const option = document.createElement("option");
   option.value = device.deviceId;
   option.text = device.label;
@@ -169,7 +118,6 @@ function updateCameraSelection(device) {
 }
 
 async function getVideoSrcObject() {
-  const cameraSelect = document.getElementById("cameraSelect");
   const cameraId = cameraSelect.value;
   const constraints = {
     audio: false,
@@ -198,8 +146,6 @@ async function getVideoSrcObject() {
  * connect to bluetooth device and set device control map
  */
 async function bluetoothPairing() {
-  const robotSelect = document.getElementById("robotSelect");
-  const robotNameInput = document.getElementById("robotNameInput");
   selectedDeviceControlMap = deviceControlMap[robotSelect.value];
   device = await useBluetooth.connectToBluetoothDevice(
     selectedDeviceControlMap.namePrefix ?? undefined,
@@ -353,8 +299,6 @@ function stop() {
 }
 
 function displayMessage(messageContent) {
-  const messageView = document.getElementById("messageView");
-
   if (typeof messageContent == "object") {
     messageContent = JSON.stringify(messageContent);
   }

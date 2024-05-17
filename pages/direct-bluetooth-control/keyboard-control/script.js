@@ -1,32 +1,12 @@
-import useBluetooth from "./modules/bluetooth.js";
-import { deviceControlMap } from "./modules/deviceProfile.js";
+import useBluetooth from "../../../modules/bluetooth.js";
+import { deviceControlMap } from "../../../modules/deviceProfile.js";
+import { initializeDOMElements, initializeVariables } from "./initialize.js";
 
-const { pairButton, stopButton } = initializeDOMElements();
+const { pairButton, stopButton, robotSelect, robotNameInput, messageView } =
+  initializeDOMElements();
 let { device, lastDirection, selectedDeviceControlMap } = initializeVariables();
 
-function initializeDOMElements() {
-  const pairButton = document.getElementById("pairButton");
-  const stopButton = document.getElementById("stopButton");
-  return {
-    pairButton,
-    stopButton,
-  };
-}
-
-function initializeVariables() {
-  let device;
-  let selectedDeviceControlMap;
-  let lastDirection;
-  return {
-    device,
-    selectedDeviceControlMap,
-    lastDirection,
-  };
-}
-
 async function bluetoothPairing() {
-  const robotSelect = document.getElementById("robotSelect");
-  const robotNameInput = document.getElementById("robotNameInput");
   selectedDeviceControlMap = deviceControlMap[robotSelect.value];
 
   device = await useBluetooth.connectToBluetoothDevice(
@@ -109,8 +89,6 @@ async function handleKeyUp(e) {
 }
 
 function displayMessage(messageContent) {
-  const messageView = document.getElementById("messageView");
-
   if (typeof messageContent == "object") {
     messageContent = JSON.stringify(messageContent);
   }
