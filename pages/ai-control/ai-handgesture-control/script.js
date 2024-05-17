@@ -254,7 +254,7 @@ async function openWebSocket() {
       mimeType = parsedMimeType;
       mimeOptionObj = parsedMimeOptionObj;
       const videoDecoderConfig = {
-        codec: mimeOptionObj.codec ?? "avc1.42E03C",
+        codec: mimeOptionObj.codecs ?? "avc1.42E03C",
       };
 
       if (videoDecoderConfig.codec.includes("jpeg")) return;

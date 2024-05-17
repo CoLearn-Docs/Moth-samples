@@ -9,11 +9,6 @@ const videoWebCodecsMap = {
   // av1: "av01",
 };
 
-const host = document.getElementById("hostInput");
-const port = document.getElementById("portInput");
-host.value = "cobot.center";
-port.value = "8286";
-
 const {
   checkCameraPermissionButton,
   cameraPermissionLabel,
@@ -255,9 +250,9 @@ async function subscribe() {
   await writer.ready;
   videoElement.srcObject = new MediaStream([mediaStreamTrack]);
 
-  async function handleChunk(frame) {
+  function handleChunk(frame) {
     if (frame && mediaStreamTrack) {
-      await writer.write(frame);
+      writer.write(frame);
       frame.close();
     }
   }
@@ -272,52 +267,46 @@ async function subscribe() {
   let mimeType;
   let mimeOptionObj;
 
-  websocket.onmessage = async function (e) {
+  websocket.onmessage = function (e) {
     if (useMoth.isMimeMessage(e.data)) {
       const { parsedMimeType, parsedMimeOptionObj } = useMoth.parseMime(e.data);
       mimeType = parsedMimeType;
       mimeOptionObj = parsedMimeOptionObj;
 
       const videoDecoderConfig = {
-        codec: mimeOptionObj.codec ?? "avc1.42E03C",
+        codec: mimeOptionObj.codecs ?? "avc1.42E03C",
       };
 
       if (videoDecoderConfig.codec.includes("jpeg")) return;
 
-      async function configureVideoDecoder() {
-        if (await VideoDecoder.isConfigSupported(videoDecoderConfig)) {
-          console.log("video decoder configuring...");
-          videoDecoder.configure(videoDecoderConfig);
-        }
+      if (VideoDecoder.isConfigSupported(videoDecoderConfig)) {
+        console.log("video decoder configuring...", videoDecoderConfig);
+        videoDecoder.configure(videoDecoderConfig);
       }
-      configureVideoDecoder();
+      return;
     }
 
     if (useMoth.isEncodedMessage(e.data)) {
-      decode(mimeType, e, handleChunk, videoDecoder);
+      if (mimeType.includes("jpeg")) {
+        const blob = new Blob([e.data], { type: "image/jpeg" });
+        createImageBitmap(blob).then((imageBitmap) => {
+          const decodedChunk = new VideoFrame(imageBitmap, {
+            timestamp: e.timeStamp,
+          });
+          handleChunk(decodedChunk);
+        });
+      } else {
+        const encodedChunk = new EncodedVideoChunk({
+          type: "key",
+          data: e.data,
+          timestamp: e.timeStamp,
+          duration: 0,
+        });
+
+        videoDecoder.decode(encodedChunk);
+      }
     }
   };
-}
-
-function decode(mimeType, e, handleChunk, videoDecoder) {
-  if (mimeType.includes("jpeg")) {
-    const blob = new Blob([e.data], { type: "image/jpeg" });
-    createImageBitmap(blob).then((imageBitmap) => {
-      const decodedChunk = new VideoFrame(imageBitmap, {
-        timestamp: e.timeStamp,
-      });
-      handleChunk(decodedChunk);
-    });
-  }
-  if (videoDecoder.state === "configured") {
-    const encodedChunk = new EncodedVideoChunk({
-      type: "key",
-      data: e.data,
-      timestamp: e.timeStamp,
-      duration: 0,
-    });
-    videoDecoder.decode(encodedChunk);
-  }
 }
 
 function stop() {

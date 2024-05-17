@@ -4,17 +4,6 @@ import { deviceControlMap } from "../../../modules/deviceProfile.js";
 import keepWebSocketAlive from "../../.../../../modules/websocket.js";
 import { initializeDOMElements, initializeVariables } from "./initialize.js";
 
-// tmp데이터====================================================
-const ssidInput = document.getElementById("ssidInput");
-const passwordInput = document.getElementById("passwordInput");
-const hostInput = document.getElementById("hostInput");
-const portInput = document.getElementById("portInput");
-
-ssidInput.value = "TeamGRITax";
-passwordInput.value = "teamgrit8266";
-hostInput.value = "cobot.center";
-portInput.value = 8286;
-// ===========================================================
 const {
   pairButton,
   sendMediaServerInfoButton,
@@ -148,7 +137,7 @@ async function openWebSocket() {
       mimeType = parsedMimeType;
       mimeOptionObj = parsedMimeOptionObj;
       const videoDecoderConfig = {
-        codec: mimeOptionObj.codec ?? "avc1.42E03C",
+        codec: mimeOptionObj.codecs ?? "avc1.42E03C",
       };
 
       if (videoDecoderConfig.codec.includes("jpeg")) return;
