@@ -24,3 +24,11 @@ export function initializeDOMElements() {
     return elements;
   }, {});
 }
+
+const VARIABLES = {
+  websocket: null,
+};
+
+export function initializeVariables() {
+  return { ...VARIABLES };
+}

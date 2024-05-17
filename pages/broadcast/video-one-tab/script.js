@@ -1,13 +1,18 @@
 import useMoth from "../../../modules/moth.js";
 import keepWebSocketAlive from "../../../modules/websocket.js";
-import { initializeDOMElements } from "./initialize.js";
+import { initializeDOMElements, initializeVariables } from "./initialize.js";
 
 const videoWebCodecsMap = {
-  h264: "avc1.42002A",
+  h264: "avc1.42E03C",
   vp8: "vp8",
   vp9: "vp09.00.31.08",
-  // av1: "av01.0.05M.10",
+  // av1: "av01",
 };
+
+const host = document.getElementById("hostInput");
+const port = document.getElementById("portInput");
+host.value = "cobot.center";
+port.value = "8286";
 
 const {
   checkCameraPermissionButton,
@@ -27,6 +32,8 @@ const {
   videoElement,
   keyframeIntervalInput,
 } = initializeDOMElements();
+
+let { websocket } = initializeVariables();
 
 function makeResolutionOptions() {
   const resolutionOptions = ["640x480", "1280x720", "1920x1080"];
@@ -144,7 +151,7 @@ async function publish() {
     port: portInput.value,
   });
 
-  const websocket = new WebSocket(serverURL);
+  websocket = new WebSocket(serverURL);
   websocket.binaryType = "arraybuffer";
 
   const codecs = codecSelect.value;
@@ -159,7 +166,9 @@ async function publish() {
     function handleVideoChunk(chunk) {
       const chunkData = new Uint8Array(chunk.byteLength);
       chunk.copyTo(chunkData);
-      websocket.send(chunkData);
+      if (websocket.readyState === WebSocket.OPEN) {
+        websocket.send(chunkData);
+      }
     }
 
     const videoEncoderConfig = {
@@ -236,7 +245,7 @@ async function subscribe() {
     port: portInput.value,
   });
 
-  const websocket = new WebSocket(serverURL);
+  websocket = new WebSocket(serverURL);
   websocket.binaryType = "arraybuffer";
 
   let mediaStreamTrack = new MediaStreamTrackGenerator({
