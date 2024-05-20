@@ -16,11 +16,12 @@ export function initializeDOMElements() {
 }
 
 const VARIABLES = {
-  device: null,
+  deviceObj: null,
   selectedDeviceControlMap: null,
   websocket: null,
   networkConfig: {},
   lastDirection: null,
+  txCharacteristicObj: null,
 };
 
 export function initializeVariables() {

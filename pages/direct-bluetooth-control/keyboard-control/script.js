@@ -4,16 +4,26 @@ import { initializeDOMElements, initializeVariables } from "./initialize.js";
 
 const { pairButton, stopButton, robotSelect, robotNameInput, messageView } =
   initializeDOMElements();
-let { device, lastDirection, selectedDeviceControlMap } = initializeVariables();
+let {
+  deviceObj,
+  lastDirection,
+  selectedDeviceControlMap,
+  txCharacteristicObj,
+} = initializeVariables();
 
 async function bluetoothPairing() {
   selectedDeviceControlMap = deviceControlMap[robotSelect.value];
 
-  device = await useBluetooth.connectToBluetoothDevice(
-    selectedDeviceControlMap.namePrefix ?? undefined,
-    selectedDeviceControlMap.serviceUUID
-  );
+  const { device, txCharacteristic } =
+    await useBluetooth.connectToBluetoothDevice(
+      selectedDeviceControlMap.namePrefix ?? undefined,
+      selectedDeviceControlMap.serviceUUID,
+      selectedDeviceControlMap.txCharacteristicUUID
+    );
+
   robotNameInput.value = device.name;
+  deviceObj = device;
+  txCharacteristicObj = txCharacteristic;
 
   document.addEventListener("keydown", handleKeyDown);
   document.addEventListener("keyup", handleKeyUp);
@@ -41,17 +51,13 @@ async function handleKeyDown(e) {
   if (selectedDeviceControlMap.maxTransferSize) {
     useBluetooth.sendMessageToDeviceOverBluetooth(
       JSON.stringify(controlCommand),
-      device,
       selectedDeviceControlMap.maxTransferSize,
-      selectedDeviceControlMap.serviceUUID,
-      selectedDeviceControlMap.txCharacteristicUUID
+      txCharacteristicObj
     );
   } else {
     useBluetooth.sendTextToDeviceOverBluetooth(
       JSON.stringify(controlCommand),
-      device,
-      selectedDeviceControlMap.serviceUUID,
-      selectedDeviceControlMap.txCharacteristicUUID
+      txCharacteristicObj
     );
   }
 
@@ -71,17 +77,13 @@ async function handleKeyUp(e) {
   if (selectedDeviceControlMap.maxTransferSize) {
     useBluetooth.sendMessageToDeviceOverBluetooth(
       JSON.stringify(controlCommand),
-      device,
       selectedDeviceControlMap.maxTransferSize,
-      selectedDeviceControlMap.serviceUUID,
-      selectedDeviceControlMap.txCharacteristicUUID
+      txCharacteristicObj
     );
   } else {
     useBluetooth.sendTextToDeviceOverBluetooth(
       JSON.stringify(controlCommand),
-      device,
-      selectedDeviceControlMap.serviceUUID,
-      selectedDeviceControlMap.txCharacteristicUUID
+      txCharacteristicObj
     );
   }
 

@@ -20,7 +20,7 @@ export function initializeDOMElements() {
 }
 
 const VARIABLES = {
-  device: null,
+  deviceObj: null,
   selectedDeviceControlMap: null,
   websocket: null,
   networkConfig: {},
@@ -29,6 +29,7 @@ const VARIABLES = {
   mediaStreamTrack: null,
   gestureRecognizer: null,
   runningMode: "IMAGE",
+  txCharacteristicObj: null,
 };
 
 export function initializeVariables() {

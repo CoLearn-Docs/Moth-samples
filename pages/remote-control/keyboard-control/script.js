@@ -15,20 +15,25 @@ const {
 } = initializeDOMElements();
 
 let {
-  device,
+  deviceObj,
   websocket,
   networkConfig,
   lastDirection,
   selectedDeviceControlMap,
+  txCharacteristicObj,
 } = initializeVariables();
 
 async function bluetoothPairing() {
   selectedDeviceControlMap = deviceControlMap[robotSelect.value];
-  device = await useBluetooth.connectToBluetoothDevice(
-    selectedDeviceControlMap.namePrefix ?? undefined,
-    selectedDeviceControlMap.serviceUUID
-  );
+  const { device, txCharacteristic } =
+    await useBluetooth.connectToBluetoothDevice(
+      selectedDeviceControlMap.namePrefix ?? undefined,
+      selectedDeviceControlMap.serviceUUID,
+      selectedDeviceControlMap.txCharacteristicUUID
+    );
   robotNameInput.value = device.name;
+  deviceObj = device;
+  txCharacteristicObj = txCharacteristic;
 }
 
 async function sendMediaServerInfo() {
@@ -46,7 +51,7 @@ async function sendMediaServerInfo() {
       ? networkConfig.port
       : networkConfig.port - 1;
 
-  if (device) {
+  if (deviceObj) {
     const metricData = {
       type: "metric",
       data: {
@@ -64,17 +69,13 @@ async function sendMediaServerInfo() {
     if (selectedDeviceControlMap.maxTransferSize) {
       useBluetooth.sendMessageToDeviceOverBluetooth(
         JSON.stringify(metricData),
-        device,
         selectedDeviceControlMap.maxTransferSize,
-        selectedDeviceControlMap.serviceUUID,
-        selectedDeviceControlMap.txCharacteristicUUID
+        txCharacteristicObj
       );
     } else {
       useBluetooth.sendTextToDeviceOverBluetooth(
         JSON.stringify(metricData),
-        device,
-        selectedDeviceControlMap.serviceUUID,
-        selectedDeviceControlMap.txCharacteristicUUID
+        txCharacteristicObj
       );
     }
   }
@@ -96,7 +97,7 @@ async function openWebSocket() {
   websocket = new WebSocket(serverURL);
   websocket.binaryType = "arraybuffer";
   websocket.onopen = () => {
-    if (device) {
+    if (deviceObj) {
       document.addEventListener("keydown", handleKeyDown);
       document.addEventListener("keyup", handleKeyUp);
     }
@@ -108,7 +109,7 @@ async function openWebSocket() {
 
 function stop() {
   websocket.close();
-  useBluetooth.disconnectFromBluetoothDevice(device);
+  useBluetooth.disconnectFromBluetoothDevice(deviceObj);
 }
 
 async function handleKeyDown(e) {

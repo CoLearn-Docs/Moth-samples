@@ -23,7 +23,7 @@ const {
 } = initializeDOMElements();
 
 let {
-  device,
+  deviceObj,
   websocket,
   networkConfig,
   lastDirection,
@@ -32,6 +32,7 @@ let {
   mediaStreamTrack,
   gestureRecognizer,
   runningMode,
+  txCharacteristicObj,
 } = initializeVariables();
 
 /**
@@ -147,11 +148,16 @@ async function getVideoSrcObject() {
  */
 async function bluetoothPairing() {
   selectedDeviceControlMap = deviceControlMap[robotSelect.value];
-  device = await useBluetooth.connectToBluetoothDevice(
-    selectedDeviceControlMap.namePrefix ?? undefined,
-    selectedDeviceControlMap.serviceUUID
-  );
+  const { device, txCharacteristic } =
+    await useBluetooth.connectToBluetoothDevice(
+      selectedDeviceControlMap.namePrefix ?? undefined,
+      selectedDeviceControlMap.serviceUUID,
+      selectedDeviceControlMap.txCharacteristicUUID
+    );
+
   robotNameInput.value = device.name;
+  deviceObj = device;
+  txCharacteristicObj = txCharacteristic;
 }
 
 /**
@@ -179,7 +185,7 @@ async function sendMediaServerInfo() {
       ? networkConfig.port
       : networkConfig.port - 1;
 
-  if (device) {
+  if (deviceObj) {
     const metricData = {
       type: "metric",
       data: {
@@ -197,17 +203,13 @@ async function sendMediaServerInfo() {
     if (selectedDeviceControlMap.maxTransferSize) {
       useBluetooth.sendMessageToDeviceOverBluetooth(
         JSON.stringify(metricData),
-        device,
         selectedDeviceControlMap.maxTransferSize,
-        selectedDeviceControlMap.serviceUUID,
-        selectedDeviceControlMap.txCharacteristicUUID
+        txCharacteristicObj
       );
     } else {
       useBluetooth.sendTextToDeviceOverBluetooth(
         JSON.stringify(metricData),
-        device,
-        selectedDeviceControlMap.serviceUUID,
-        selectedDeviceControlMap.txCharacteristicUUID
+        txCharacteristicObj
       );
     }
   }
@@ -295,7 +297,7 @@ async function openWebSocket() {
 
 function stop() {
   websocket.close();
-  useBluetooth.disconnectFromBluetoothDevice(device);
+  useBluetooth.disconnectFromBluetoothDevice(deviceObj);
 }
 
 function displayMessage(messageContent) {

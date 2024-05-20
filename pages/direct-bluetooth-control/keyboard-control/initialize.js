@@ -14,9 +14,10 @@ export function initializeDOMElements() {
 }
 
 const VARIABLES = {
-  device: null,
+  deviceObj: null,
   selectedDeviceControlMap: null,
   lastDirection: null,
+  txCharacteristicObj: null,
 };
 
 export function initializeVariables() {
