@@ -1,7 +1,7 @@
-import useBluetooth from "../../../modules/bluetooth.js";
-import useMoth from "../../../modules/moth.js";
-import { deviceControlMap } from "../../../modules/deviceProfile.js";
-import keepWebSocketAlive from "../../../modules/websocket.js";
+import useBluetooth from "../../../../modules/bluetooth.js";
+import useMoth from "../../../../modules/moth.js";
+import { deviceControlMap } from "../../../../modules/deviceProfile.js";
+import keepWebSocketAlive from "../../../../modules/websocket.js";
 import { initializeDOMElements, initializeVariables } from "./initialize.js";
 
 const {
