@@ -1,6 +1,8 @@
 const UART_SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
 const UART_TX_CHARACTERISTIC_UUID = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
 const UART_RX_CHARACTERISTIC_UUID = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
+const HM10_SERVICE_UUID = "0000ffe0-0000-1000-8000-00805f9b34fb";
+const HM10_CHARACTERISTIC_UUID = "0000ffe1-0000-1000-8000-00805f9b34fb";
 
 export const deviceLabels = [
   {
@@ -65,7 +67,54 @@ const JUNBOOK = {
   stopCommand: "STOP",
 };
 
+const XROVER_DOT = {
+  namePrefix: "HMSoft",
+  controlType: ["direction"],
+  hasBluetoothSetting: true,
+  hasWifiSetting: false,
+  serviceUUID: HM10_SERVICE_UUID,
+  rxCharacteristicUUID: HM10_CHARACTERISTIC_UUID,
+  txCharacteristicUUID: HM10_CHARACTERISTIC_UUID,
+  controlCommandMap: {
+    keyboard: {
+      direction: {
+        KeyW: "F",
+        KeyA: "L",
+        KeyS: "B",
+        KeyD: "R",
+        KeyH: "H", // 하트
+      },
+    },
+  },
+  stopCommand: "S",
+};
+
+const XROVER_GRIPPER = {
+  namePrefix: "HM-10",
+  controlType: ["direction"],
+  hasBluetoothSetting: true,
+  hasWifiSetting: false,
+  serviceUUID: HM10_SERVICE_UUID,
+  rxCharacteristicUUID: HM10_CHARACTERISTIC_UUID,
+  txCharacteristicUUID: HM10_CHARACTERISTIC_UUID,
+  controlCommandMap: {
+    keyboard: {
+      direction: {
+        KeyW: "F",
+        KeyA: "L",
+        KeyS: "B",
+        KeyD: "R",
+        KeyK: "O",
+        KeyL: "C",
+      },
+    },
+  },
+  stopCommand: "S",
+};
+
 export const deviceControlMap = {
   COBOT_PRO_001,
   JUNBOOK,
+  XROVER_DOT,
+  XROVER_GRIPPER,
 };
