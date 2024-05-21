@@ -36,6 +36,17 @@ function stop() {
   document.removeEventListener("keydown", handleKeyDown);
 }
 
+function createControlCommand(robot, direction) {
+  if (robot === "XROVER_DOT" || robot === "XROVER_GRIPPER") {
+    return direction;
+  } else {
+    return {
+      type: "control",
+      direction,
+    };
+  }
+}
+
 async function handleKeyDown(e) {
   const controlCommandMap =
     selectedDeviceControlMap.controlCommandMap.keyboard.direction;
@@ -43,10 +54,7 @@ async function handleKeyDown(e) {
   if (direction === lastDirection) return;
   lastDirection = direction;
 
-  const controlCommand = {
-    type: "control",
-    direction,
-  };
+  const controlCommand = createControlCommand(robotSelect.value, direction);
 
   if (selectedDeviceControlMap.maxTransferSize) {
     useBluetooth.sendMessageToDeviceOverBluetooth(
@@ -69,10 +77,7 @@ async function handleKeyUp(e) {
   if (direction === lastDirection) return;
   lastDirection = direction;
 
-  const controlCommand = {
-    type: "control",
-    direction,
-  };
+  const controlCommand = createControlCommand(robotSelect.value, direction);
 
   if (selectedDeviceControlMap.maxTransferSize) {
     useBluetooth.sendMessageToDeviceOverBluetooth(
