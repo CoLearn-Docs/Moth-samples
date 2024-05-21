@@ -18,6 +18,16 @@
 
       <main>
         <section>
+          <h2>Mode Settings</h2>
+          <div>
+            <label for="hostSwitch">HOST</label>
+            <input type="radio" id="hostSwitch" name="modeSwitch" checked />
+            <label for="guestSwitch">GUEST</label>
+            <input type="radio" id="guestSwitch" name="modeSwitch" />
+          </div>
+        </section>
+
+        <section>
           <h2>1. Find the robot and pair.</h2>
           <label for="robotSelect">Robot profile: </label>
           <select id="robotSelect">
@@ -26,14 +36,16 @@
           </select>
           <button id="pairButton">Pairing</button>
           <br />
-          <label for="">Connected Robot Name is </label>
-          <input
-            type="text"
-            id="robotNameInput"
-            value=""
-            placeholder=""
-            disabled
-          />
+          <div id="connectedRobotName">
+            <label for="">Connected Robot Name is </label>
+            <input
+              type="text"
+              id="robotNameInput"
+              value=""
+              placeholder=""
+              disabled
+            />
+          </div>
         </section>
 
         <section>
@@ -61,6 +73,9 @@
             ></textarea>
           </div>
           <button id="openWebSocketButton">Open</button>
+          <button id="subscribeWebSocketButton" class="hidden">
+            Subscribe
+          </button>
           <button id="stopButton">Stop</button>
         </section>
       </main>

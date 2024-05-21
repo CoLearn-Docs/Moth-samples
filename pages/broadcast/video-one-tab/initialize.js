@@ -16,6 +16,9 @@ const DOM_ELEMENTS = {
   framerateInput: "framerateInput",
   videoElement: "videoElement",
   keyframeIntervalInput: "keyframeIntervalInput",
+  pairSection: "pairSection",
+  channelSectionTitle: "channelSectionTitle",
+  publishSubscribeSectionTitle: "publishSubscribeSectionTitle",
 };
 
 export function initializeDOMElements() {

@@ -26,6 +26,7 @@ const {
   portInput,
   videoElement,
   keyframeIntervalInput,
+  pairSection,
 } = initializeDOMElements();
 
 let { websocket } = initializeVariables();
@@ -315,7 +316,6 @@ function stop() {
 
 document.addEventListener("DOMContentLoaded", () => {
   makeResolutionOptions();
-
   checkCameraPermissionButton.addEventListener("click", checkCameraPermission);
   findChannelsButton.addEventListener("click", findChannels);
   publishButton.addEventListener("click", publish);
@@ -327,3 +327,27 @@ videoElement.onloadedmetadata = () => {
   videoElement.style.width = "100%";
   videoElement.style.height = "100%";
 };
+
+document.getElementById("hostSwitch").addEventListener("change", function () {
+  if (this.checked) {
+    console.log("HOST mode selected");
+    subscribeButton.classList.add("hidden");
+    publishButton.classList.remove("hidden");
+    pairSection.classList.remove("hidden");
+    channelSectionTitle.innerHTML = "1. Select the channel to use";
+    publishSubscribeSectionTitle.innerHTML =
+      "2. Publish and subscribe the video";
+  }
+});
+
+document.getElementById("guestSwitch").addEventListener("change", function () {
+  if (this.checked) {
+    console.log("GUEST mode selected");
+    subscribeButton.classList.remove("hidden");
+    publishButton.classList.add("hidden");
+    pairSection.classList.add("hidden");
+    channelSectionTitle.innerHTML = "1. Select the channel to use";
+    publishSubscribeSectionTitle.innerHTML =
+      "2. Publish and subscribe the video";
+  }
+});

@@ -9,6 +9,8 @@ const DOM_ELEMENTS = {
   hostInput: "hostInput",
   portInput: "portInput",
   channelInput: "channelInput",
+  subscribeWebSocketButton: "subscribeWebSocketButton",
+  connectedRobotName: "connectedRobotName",
 };
 
 export function initializeDOMElements() {

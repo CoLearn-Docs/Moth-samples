@@ -7,6 +7,9 @@ const DOM_ELEMENTS = {
   robotSelect: "robotSelect",
   robotNameInput: "robotNameInput",
   messageView: "messageView",
+  subscribeWebSocketButton: "subscribeWebSocketButton",
+  advancedSettings: "advancedSettings",
+  connectedRobotName: "connectedRobotName",
 };
 
 export function initializeDOMElements() {

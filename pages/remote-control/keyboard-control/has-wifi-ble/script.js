@@ -12,6 +12,9 @@ const {
   robotSelect,
   robotNameInput,
   messageView,
+  subscribeWebSocketButton,
+  advancedSettings,
+  connectedRobotName,
 } = initializeDOMElements();
 
 let {
@@ -98,8 +101,8 @@ async function openWebSocket() {
   websocket.binaryType = "arraybuffer";
   websocket.onopen = () => {
     if (deviceObj) {
-      document.addEventListener("keydown", handleKeyDown);
-      document.addEventListener("keyup", handleKeyUp);
+      document.addEventListener("keydown", (e) => handleKeyEvent(e, true));
+      document.addEventListener("keyup", (e) => handleKeyEvent(e, false));
     }
   };
   displayMessage("Open WebSocket");
@@ -112,26 +115,13 @@ function stop() {
   useBluetooth.disconnectFromBluetoothDevice(deviceObj);
 }
 
-async function handleKeyDown(e) {
+async function handleKeyEvent(e, isKeyDown) {
+  selectedDeviceControlMap = deviceControlMap[robotSelect.value];
   const controlCommandMap =
     selectedDeviceControlMap.controlCommandMap.keyboard.direction;
-  const direction = controlCommandMap[e.code];
-  if (direction === lastDirection) return;
-  lastDirection = direction;
-
-  const controlCommand = {
-    type: "control",
-    direction,
-  };
-
-  if (websocket && websocket.readyState === WebSocket.OPEN) {
-    websocket.send(new TextEncoder().encode(JSON.stringify(controlCommand)));
-    displayMessage(direction);
-  }
-}
-
-async function handleKeyUp(e) {
-  const direction = selectedDeviceControlMap.stopCommand;
+  const direction = isKeyDown
+    ? controlCommandMap[e.code]
+    : selectedDeviceControlMap.stopCommand;
   if (direction === lastDirection) return;
   lastDirection = direction;
 
@@ -154,9 +144,60 @@ function displayMessage(messageContent) {
   messageView.scrollTop = messageView.scrollHeight;
 }
 
+const subscribeWebSocket = () => {
+  const channelInput = document.getElementById("channelInput").value;
+  const hostInput = document.getElementById("hostInput").value;
+  const portInput = document.getElementById("portInput").value;
+
+  const serverURL = useMoth.setServiceURL({
+    type: "sub",
+    options: {
+      channel: "instant",
+      name: channelInput,
+      track: "colink",
+      mode: "bundle",
+    },
+    host: hostInput,
+    port: portInput,
+  });
+
+  websocket = new WebSocket(serverURL);
+  websocket.binaryType = "arraybuffer";
+  websocket.onopen = () => {
+    document.addEventListener("keydown", (e) => handleKeyEvent(e, true));
+    document.addEventListener("keyup", (e) => handleKeyEvent(e, false));
+  };
+  displayMessage("Open WebSocket");
+};
+
 document.addEventListener("DOMContentLoaded", () => {
   pairButton.addEventListener("click", bluetoothPairing);
   sendMediaServerInfoButton.addEventListener("click", sendMediaServerInfo);
   openWebSocketButton.addEventListener("click", openWebSocket);
+  subscribeWebSocketButton.addEventListener("click", subscribeWebSocket);
   stopButton.addEventListener("click", stop);
+});
+
+document.getElementById("hostSwitch").addEventListener("change", function () {
+  if (this.checked) {
+    console.log("HOST mode selected");
+    advancedSettings.classList.remove("hidden");
+    subscribeWebSocketButton.classList.add("hidden");
+    openWebSocketButton.classList.remove("hidden");
+    pairButton.classList.remove("hidden");
+    connectedRobotName.classList.remove("hidden");
+    sendMediaServerInfoButton.classList.remove("hidden");
+  }
+});
+
+document.getElementById("guestSwitch").addEventListener("change", function () {
+  if (this.checked) {
+    console.log("GUEST mode selected");
+    advancedSettings.classList.add("hidden");
+    subscribeWebSocketButton.classList.remove("hidden");
+    openWebSocketButton.classList.add("hidden");
+    pairButton.classList.add("hidden");
+    connectedRobotName.classList.add("hidden");
+    sendMediaServerInfoButton.classList.add("hidden");
+  }
 });
