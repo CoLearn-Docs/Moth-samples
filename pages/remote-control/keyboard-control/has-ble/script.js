@@ -80,9 +80,11 @@ async function openWebSocket() {
   displayMessage("Open WebSocket");
 
   keepWebSocketAlive(subWebsocket);
+  keepWebSocketAlive(pubWebsocket);
 
   pubWebsocket.onmessage = (command) => {
     const controlCommand = new TextDecoder().decode(command.data);
+    // 블루투스로 제어 명령을 전송합니다.
     useBluetooth.sendTextToDeviceOverBluetooth(
       controlCommand,
       txCharacteristicObj

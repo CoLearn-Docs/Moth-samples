@@ -34,7 +34,7 @@ async function connectToBluetoothDevice(
     console.log("Getting UART Service...");
     const service = await server?.getPrimaryService(serviceUUID);
 
-    console.log("Getting UART RX Characteristic...");
+    console.log("Getting UART TX Characteristic...");
     const txCharacteristic = await service?.getCharacteristic(
       txCharacteristicUUID
     );
