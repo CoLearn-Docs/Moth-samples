@@ -14,10 +14,10 @@ let {
 
 // 블루투스 연결을 설정하는 함수입니다.
 async function bluetoothPairing() {
-  // 선택한 로봇의 제어 맵을 가져옵니다.
+  // 전역변수에 선택한 로봇의 제어 맵을 가져옵니다.
   selectedDeviceControlMap = deviceControlMap[robotSelect.value];
 
-  // 블루투스 장치에 연결합니다.
+  // 선택한 로봇의 블루투스 장치와 송신 특성에 연결합니다.
   const { device, txCharacteristic } =
     await useBluetooth.connectToBluetoothDevice(
       selectedDeviceControlMap.namePrefix ?? undefined,
@@ -27,6 +27,8 @@ async function bluetoothPairing() {
 
   // 연결된 장치의 이름을 입력란에 표시합니다.
   robotNameInput.value = device.name;
+
+  // 전역변수에 연결된 장치와 송신 특성을 저장합니다.
   deviceObj = device;
   txCharacteristicObj = txCharacteristic;
 
