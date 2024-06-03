@@ -2,6 +2,8 @@ import useMoth from "../../../modules/moth.js";
 import keepWebSocketAlive from "../../../modules/websocket.js";
 import { initializeDOMElements, initializeVariables } from "./initialize.js";
 
+console.log("Moth-sample repo");
+
 const videoWebCodecsMap = {
   h264: "avc1.42E03C",
   vp8: "vp8",
@@ -28,6 +30,9 @@ const {
   keyframeIntervalInput,
   pairSection,
 } = initializeDOMElements();
+
+hostInput.value = "cobot.center";
+portInput.value = 8286;
 
 let { websocket } = initializeVariables();
 
@@ -184,9 +189,8 @@ async function publish() {
       handleVideoChunk,
       keyframeIntervalInput.value
     );
+    keepWebSocketAlive(websocket);
   };
-
-  keepWebSocketAlive(websocket);
 }
 
 async function encode(
@@ -216,15 +220,25 @@ async function encode(
     const { done, value } = await reader.read();
 
     if (done) return;
-    if (videoEncoder.state === "closed") return;
+    if (videoEncoder.state === "closed") {
+      value.close();
+      return;
+    }
 
     frameCounter++;
 
     videoEncoder.configure(videoEncoderConfig);
+    console.log(videoEncoder.state);
 
     videoEncoder.encode(value, {
       keyFrame: frameCounter % keyFrameInterval === 0,
     });
+
+    // if (frameCounter % keyFrameInterval === 0) {
+    //   console.log("key frame sent");
+    // } else {
+    //   console.log("delta frame sent");
+    // }
     value.close();
   }
 }
@@ -243,6 +257,7 @@ async function subscribe() {
 
   websocket = new WebSocket(serverURL);
   websocket.binaryType = "arraybuffer";
+  // console.log(serverURL);
 
   let mediaStreamTrack = new MediaStreamTrackGenerator({
     kind: "video",
@@ -268,8 +283,10 @@ async function subscribe() {
   let mimeType;
   let mimeOptionObj;
 
-  websocket.onmessage = function (e) {
+  websocket.onmessage = async function (e) {
     if (useMoth.isMimeMessage(e.data)) {
+      console.log("mime message received");
+      console.log(e.data);
       const { parsedMimeType, parsedMimeOptionObj } = useMoth.parseMime(e.data);
       mimeType = parsedMimeType;
       mimeOptionObj = parsedMimeOptionObj;
@@ -280,38 +297,40 @@ async function subscribe() {
 
       if (videoDecoderConfig.codec.includes("jpeg")) return;
 
-      if (VideoDecoder.isConfigSupported(videoDecoderConfig)) {
+      if (await VideoDecoder.isConfigSupported(videoDecoderConfig)) {
         console.log("video decoder configuring...", videoDecoderConfig);
         videoDecoder.configure(videoDecoderConfig);
+        console.log(videoDecoder.state);
       }
       return;
     }
 
     if (useMoth.isEncodedMessage(e.data)) {
-      if (mimeType.includes("jpeg")) {
-        const blob = new Blob([e.data], { type: "image/jpeg" });
-        createImageBitmap(blob).then((imageBitmap) => {
-          const decodedChunk = new VideoFrame(imageBitmap, {
-            timestamp: e.timeStamp,
-          });
-          handleChunk(decodedChunk);
-        });
-      } else {
-        const encodedChunk = new EncodedVideoChunk({
-          type: "key",
-          data: e.data,
-          timestamp: e.timeStamp,
-          duration: 0,
-        });
+      const encodedChunk = new EncodedVideoChunk({
+        type: "key",
+        data: e.data,
+        timestamp: e.timeStamp,
+        duration: 0,
+      });
 
-        videoDecoder.decode(encodedChunk);
-      }
+      videoDecoder.decode(encodedChunk);
     }
   };
+  keepWebSocketAlive(websocket);
 }
 
 function stop() {
   websocket.close();
+  websocket = null;
+  videoElement.srcObject = null;
+
+  const isHost = document.getElementById("hostSwitch").checked;
+  if (isHost) {
+    publishButton.classList.remove("hidden");
+  } else {
+    subscribeButton.classList.remove("hidden");
+  }
+  stopButton.classList.add("hidden");
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -350,4 +369,14 @@ document.getElementById("guestSwitch").addEventListener("change", function () {
     publishSubscribeSectionTitle.innerHTML =
       "2. Publish and subscribe the video";
   }
+});
+
+publishButton.addEventListener("click", () => {
+  publishButton.classList.add("hidden");
+  stopButton.classList.remove("hidden");
+});
+
+subscribeButton.addEventListener("click", () => {
+  subscribeButton.classList.add("hidden");
+  stopButton.classList.remove("hidden");
 });
