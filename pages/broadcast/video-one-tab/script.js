@@ -137,10 +137,7 @@ async function getVideoSrcObject() {
   return stream;
 }
 
-let isSending = false;
-
 async function publish() {
-  isSending = true;
   const stream = await getVideoSrcObject();
   const serverURL = useMoth.setServiceURL({
     type: "pub",
@@ -195,7 +192,6 @@ async function publish() {
 
   websocket.onclose = function () {
     console.log("websocket closed");
-    isSending = false;
   };
 }
 
@@ -224,7 +220,7 @@ async function encode(
 
   videoEncoder.configure(videoEncoderConfig);
 
-  while (websocket.OPEN && isSending) {
+  while (websocket.OPEN) {
     const { done, value } = await reader.read();
 
     if (done) return;
