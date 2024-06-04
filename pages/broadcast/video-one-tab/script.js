@@ -1,46 +1,40 @@
-import useMoth from "./modules/moth.js";
-import keepWebSocketAlive from "./modules/websocket.js";
-
-const host = document.getElementById("hostInput");
-const port = document.getElementById("portInput");
-host.value = "cobot.center";
-port.value = "8286";
+import useMoth from "../../../modules/moth.js";
+import keepWebSocketAlive from "../../../modules/websocket.js";
+import { initializeDOMElements, initializeVariables } from "./initialize.js";
 
 const videoWebCodecsMap = {
-  h264: "avc1.42002A", // avc1.42E03C avc1.42002A
+  h264: "avc1.42E03C",
   vp8: "vp8",
   vp9: "vp09.00.31.08",
-  // av1: "av01.0.05M.10",
+  // av1: "av01",
 };
 
 const {
   checkCameraPermissionButton,
+  cameraPermissionLabel,
   findChannelsButton,
   publishButton,
   subscribeButton,
   stopButton,
+  resolutionSelect,
+  codecSelect,
+  bitrateInput,
+  framerateInput,
+  bitrateModeSelect,
+  channelSelect,
+  hostInput,
+  portInput,
+  videoElement,
+  keyframeIntervalInput,
+  pairSection,
 } = initializeDOMElements();
 
-function initializeDOMElements() {
-  const checkCameraPermissionButton = document.getElementById(
-    "checkCameraPermissionButton"
-  );
-  const findChannelsButton = document.getElementById("findChannelsButton");
-  const publishButton = document.getElementById("publishButton");
-  const subscribeButton = document.getElementById("subscribeButton");
-  const stopButton = document.getElementById("stopButton");
+hostInput.value = "cobot.center";
+portInput.value = 8286;
 
-  return {
-    checkCameraPermissionButton,
-    findChannelsButton,
-    publishButton,
-    subscribeButton,
-    stopButton,
-  };
-}
+let { websocket } = initializeVariables();
 
 function makeResolutionOptions() {
-  const resolutionSelect = document.getElementById("resolutionSelect");
   const resolutionOptions = ["640x480", "1280x720", "1920x1080"];
   for (let i = 0; i < resolutionOptions.length; i++) {
     const option = document.createElement("option");
@@ -53,9 +47,6 @@ function makeResolutionOptions() {
 async function checkCameraPermission() {
   try {
     const result = await navigator.permissions.query({ name: "camera" });
-    const cameraPermissionLabel = document.getElementById(
-      "cameraPermissionLabel"
-    );
     cameraPermissionLabel.innerHTML = result.state;
 
     if (result.state === "prompt") {
@@ -89,7 +80,6 @@ async function findCameraDevice() {
 }
 
 function updateCameraSelection(device) {
-  const cameraSelect = document.getElementById("cameraSelect");
   const option = document.createElement("option");
   option.value = device.deviceId;
   option.text = device.label;
@@ -97,9 +87,6 @@ function updateCameraSelection(device) {
 }
 
 async function findChannels() {
-  const hostInput = document.getElementById("hostInput");
-  const portInput = document.getElementById("portInput");
-
   const url = useMoth.getChannelListURL({
     host: hostInput.value,
     port: portInput.value,
@@ -110,7 +97,6 @@ async function findChannels() {
     const data = await response.json();
 
     data.forEach((channel) => {
-      const channelSelect = document.getElementById("channelSelect");
       const option = document.createElement("option");
 
       if (channel.state == 1) {
@@ -130,7 +116,6 @@ async function findChannels() {
 }
 
 async function getVideoSrcObject() {
-  const cameraSelect = document.getElementById("cameraSelect");
   const cameraId = cameraSelect.value;
   const constraints = {
     audio: false,
@@ -139,7 +124,6 @@ async function getVideoSrcObject() {
     },
   };
 
-  const videoElement = document.getElementById("videoElement");
   const stream = await navigator.mediaDevices
     .getUserMedia(constraints)
     .then((stream) => {
@@ -155,16 +139,6 @@ async function getVideoSrcObject() {
 
 async function publish() {
   const stream = await getVideoSrcObject();
-  const codecSelect = document.getElementById("codecSelect");
-  const resolutionSelect = document.getElementById("resolutionSelect");
-  const bitrateInput = document.getElementById("bitrateInput");
-  const framerateInput = document.getElementById("framerateInput");
-  const bitrateModeSelect = document.getElementById("bitrateModeSelect");
-
-  const channelSelect = document.getElementById("channelSelect");
-  const hostInput = document.getElementById("hostInput");
-  const portInput = document.getElementById("portInput");
-
   const serverURL = useMoth.setServiceURL({
     type: "pub",
     options: {
@@ -176,7 +150,7 @@ async function publish() {
     port: portInput.value,
   });
 
-  const websocket = new WebSocket(serverURL);
+  websocket = new WebSocket(serverURL);
   websocket.binaryType = "arraybuffer";
 
   const codecs = codecSelect.value;
@@ -191,7 +165,9 @@ async function publish() {
     function handleVideoChunk(chunk) {
       const chunkData = new Uint8Array(chunk.byteLength);
       chunk.copyTo(chunkData);
-      websocket.send(chunkData);
+      if (websocket.readyState === WebSocket.OPEN) {
+        websocket.send(chunkData);
+      }
     }
 
     const videoEncoderConfig = {
@@ -205,19 +181,18 @@ async function publish() {
       avc: { format: "annexb" },
     };
 
-    const keyframeIntervalInput = document.getElementById(
-      "keyframeIntervalInput"
-    );
-
     await encode(
       stream,
       videoEncoderConfig,
       handleVideoChunk,
       keyframeIntervalInput.value
     );
+    keepWebSocketAlive(websocket);
   };
 
-  keepWebSocketAlive(websocket);
+  websocket.onclose = function () {
+    console.log("websocket closed");
+  };
 }
 
 async function encode(
@@ -243,29 +218,28 @@ async function encode(
     },
   });
 
-  while (true) {
+  videoEncoder.configure(videoEncoderConfig);
+
+  while (websocket.OPEN) {
     const { done, value } = await reader.read();
 
     if (done) return;
-    if (videoEncoder.state === "closed") return;
+    if (videoEncoder === null || videoEncoder.state === "closed") {
+      value.close();
+      return;
+    }
 
     frameCounter++;
-
-    videoEncoder.configure(videoEncoderConfig);
 
     videoEncoder.encode(value, {
       keyFrame: frameCounter % keyFrameInterval === 0,
     });
+
     value.close();
   }
 }
 
 async function subscribe() {
-  const channelSelect = document.getElementById("channelSelect");
-  const hostInput = document.getElementById("hostInput");
-  const portInput = document.getElementById("portInput");
-  const videoElement = document.getElementById("videoElement");
-
   const serverURL = useMoth.setServiceURL({
     type: "sub",
     options: {
@@ -277,7 +251,7 @@ async function subscribe() {
     port: portInput.value,
   });
 
-  const websocket = new WebSocket(serverURL);
+  websocket = new WebSocket(serverURL);
   websocket.binaryType = "arraybuffer";
 
   let mediaStreamTrack = new MediaStreamTrackGenerator({
@@ -287,78 +261,73 @@ async function subscribe() {
   await writer.ready;
   videoElement.srcObject = new MediaStream([mediaStreamTrack]);
 
-  async function handleChunk(frame) {
+  const handleChunk = (frame) => {
     if (frame && mediaStreamTrack) {
-      await writer.write(frame);
+      writer.write(frame);
       frame.close();
     }
-  }
+  };
 
   const videoDecoder = new VideoDecoder({
     output: handleChunk,
     error: (err) => {
-      console.log(err);
+      console.error("VideoDecoder error:", err);
     },
   });
 
   let mimeType;
   let mimeOptionObj;
 
+  websocket.onopen = function () {
+    keepWebSocketAlive(websocket);
+  };
+
   websocket.onmessage = async function (e) {
     if (useMoth.isMimeMessage(e.data)) {
       const { parsedMimeType, parsedMimeOptionObj } = useMoth.parseMime(e.data);
       mimeType = parsedMimeType;
       mimeOptionObj = parsedMimeOptionObj;
-
       const videoDecoderConfig = {
-        codec: mimeOptionObj.codec ?? "avc1.42E03C",
+        codec: mimeOptionObj.codecs ?? "avc1.42E03C",
       };
 
       if (videoDecoderConfig.codec.includes("jpeg")) return;
 
-      async function configureVideoDecoder() {
-        if (await VideoDecoder.isConfigSupported(videoDecoderConfig)) {
-          console.log("video decoder configuring...");
-          videoDecoder.configure(videoDecoderConfig);
-        }
+      if (await VideoDecoder.isConfigSupported(videoDecoderConfig)) {
+        console.log("video decoder configuring...", videoDecoderConfig);
+        videoDecoder.configure(videoDecoderConfig);
+      } else {
+        console.log("unsupported video decoder configuration");
       }
-      configureVideoDecoder();
-    }
+    } else {
+      const encodedChunk = new EncodedVideoChunk({
+        type: "key",
+        data: e.data,
+        timestamp: e.timeStamp,
+        duration: 0,
+      });
 
-    if (useMoth.isEncodedMessage(e.data)) {
-      decode(mimeType, e, handleChunk, videoDecoder);
+      videoDecoder.decode(encodedChunk);
     }
   };
 }
 
-function decode(mimeType, e, handleChunk, videoDecoder) {
-  if (mimeType.includes("jpeg")) {
-    const blob = new Blob([e.data], { type: "image/jpeg" });
-    createImageBitmap(blob).then((imageBitmap) => {
-      const decodedChunk = new VideoFrame(imageBitmap, {
-        timestamp: e.timeStamp,
-      });
-      handleChunk(decodedChunk);
-    });
-  }
-  if (videoDecoder.state === "configured") {
-    const encodedChunk = new EncodedVideoChunk({
-      type: "key",
-      data: e.data,
-      timestamp: e.timeStamp,
-      duration: 0,
-    });
-    videoDecoder.decode(encodedChunk);
-  }
-}
-
 function stop() {
   websocket.close();
+  websocket = null;
+  videoElement.srcObject = null;
+
+  const isHost = document.getElementById("hostSwitch").checked;
+  if (isHost) {
+    publishButton.classList.remove("hidden");
+  } else {
+    subscribeButton.classList.remove("hidden");
+  }
+  stopButton.classList.add("hidden");
 }
 
 document.addEventListener("DOMContentLoaded", () => {
   makeResolutionOptions();
-
   checkCameraPermissionButton.addEventListener("click", checkCameraPermission);
   findChannelsButton.addEventListener("click", findChannels);
   publishButton.addEventListener("click", publish);
@@ -370,3 +339,37 @@ videoElement.onloadedmetadata = () => {
   videoElement.style.width = "100%";
   videoElement.style.height = "100%";
 };
+
+document.getElementById("hostSwitch").addEventListener("change", function () {
+  if (this.checked) {
+    console.log("HOST mode selected");
+    subscribeButton.classList.add("hidden");
+    publishButton.classList.remove("hidden");
+    pairSection.classList.remove("hidden");
+    channelSectionTitle.innerHTML = "1. Select the channel to use";
+    publishSubscribeSectionTitle.innerHTML =
+      "2. Publish and subscribe the video";
+  }
+});
+
+document.getElementById("guestSwitch").addEventListener("change", function () {
+  if (this.checked) {
+    console.log("GUEST mode selected");
+    subscribeButton.classList.remove("hidden");
+    publishButton.classList.add("hidden");
+    pairSection.classList.add("hidden");
+    channelSectionTitle.innerHTML = "1. Select the channel to use";
+    publishSubscribeSectionTitle.innerHTML =
+      "2. Publish and subscribe the video";
+  }
+});
+
+publishButton.addEventListener("click", () => {
+  publishButton.classList.add("hidden");
+  stopButton.classList.remove("hidden");
+});
+
+subscribeButton.addEventListener("click", () => {
+  subscribeButton.classList.add("hidden");
+  stopButton.classList.remove("hidden");
+});
