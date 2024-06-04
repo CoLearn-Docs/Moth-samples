@@ -29,6 +29,9 @@ const {
   pairSection,
 } = initializeDOMElements();
 
+hostInput.value = "cobot.center";
+portInput.value = 8286;
+
 let { websocket } = initializeVariables();
 
 function makeResolutionOptions() {
@@ -184,9 +187,12 @@ async function publish() {
       handleVideoChunk,
       keyframeIntervalInput.value
     );
+    keepWebSocketAlive(websocket);
   };
 
-  keepWebSocketAlive(websocket);
+  websocket.onclose = function () {
+    console.log("websocket closed");
+  };
 }
 
 async function encode(
@@ -212,19 +218,23 @@ async function encode(
     },
   });
 
-  while (true) {
+  videoEncoder.configure(videoEncoderConfig);
+
+  while (websocket.OPEN) {
     const { done, value } = await reader.read();
 
     if (done) return;
-    if (videoEncoder.state === "closed") return;
+    if (videoEncoder === null || videoEncoder.state === "closed") {
+      value.close();
+      return;
+    }
 
     frameCounter++;
-
-    videoEncoder.configure(videoEncoderConfig);
 
     videoEncoder.encode(value, {
       keyFrame: frameCounter % keyFrameInterval === 0,
     });
+
     value.close();
   }
 }
@@ -251,67 +261,69 @@ async function subscribe() {
   await writer.ready;
   videoElement.srcObject = new MediaStream([mediaStreamTrack]);
 
-  function handleChunk(frame) {
+  const handleChunk = (frame) => {
     if (frame && mediaStreamTrack) {
       writer.write(frame);
       frame.close();
     }
-  }
+  };
 
   const videoDecoder = new VideoDecoder({
     output: handleChunk,
     error: (err) => {
-      console.log(err);
+      console.error("VideoDecoder error:", err);
     },
   });
 
   let mimeType;
   let mimeOptionObj;
 
-  websocket.onmessage = function (e) {
+  websocket.onopen = function () {
+    keepWebSocketAlive(websocket);
+  };
+
+  websocket.onmessage = async function (e) {
     if (useMoth.isMimeMessage(e.data)) {
       const { parsedMimeType, parsedMimeOptionObj } = useMoth.parseMime(e.data);
       mimeType = parsedMimeType;
       mimeOptionObj = parsedMimeOptionObj;
-
       const videoDecoderConfig = {
         codec: mimeOptionObj.codecs ?? "avc1.42E03C",
       };
 
       if (videoDecoderConfig.codec.includes("jpeg")) return;
 
-      if (VideoDecoder.isConfigSupported(videoDecoderConfig)) {
+      if (await VideoDecoder.isConfigSupported(videoDecoderConfig)) {
         console.log("video decoder configuring...", videoDecoderConfig);
         videoDecoder.configure(videoDecoderConfig);
-      }
-      return;
-    }
-
-    if (useMoth.isEncodedMessage(e.data)) {
-      if (mimeType.includes("jpeg")) {
-        const blob = new Blob([e.data], { type: "image/jpeg" });
-        createImageBitmap(blob).then((imageBitmap) => {
-          const decodedChunk = new VideoFrame(imageBitmap, {
-            timestamp: e.timeStamp,
-          });
-          handleChunk(decodedChunk);
-        });
       } else {
-        const encodedChunk = new EncodedVideoChunk({
-          type: "key",
-          data: e.data,
-          timestamp: e.timeStamp,
-          duration: 0,
-        });
-
-        videoDecoder.decode(encodedChunk);
+        console.log("unsupported video decoder configuration");
       }
+    } else {
+      const encodedChunk = new EncodedVideoChunk({
+        type: "key",
+        data: e.data,
+        timestamp: e.timeStamp,
+        duration: 0,
+      });
+
+      videoDecoder.decode(encodedChunk);
     }
   };
 }
 
 function stop() {
   websocket.close();
+  websocket = null;
+  videoElement.srcObject = null;
+
+  const isHost = document.getElementById("hostSwitch").checked;
+  if (isHost) {
+    publishButton.classList.remove("hidden");
+  } else {
+    subscribeButton.classList.remove("hidden");
+  }
+  stopButton.classList.add("hidden");
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -350,4 +362,14 @@ document.getElementById("guestSwitch").addEventListener("change", function () {
     publishSubscribeSectionTitle.innerHTML =
       "2. Publish and subscribe the video";
   }
+});
+
+publishButton.addEventListener("click", () => {
+  publishButton.classList.add("hidden");
+  stopButton.classList.remove("hidden");
+});
+
+subscribeButton.addEventListener("click", () => {
+  subscribeButton.classList.add("hidden");
+  stopButton.classList.remove("hidden");
 });
