@@ -4,19 +4,29 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Remote Video Keyboard Control</title>
-    <link rel="stylesheet" type="text/css" href="../../../style.css" />
+    <title>Remote Keyboard Control</title>
+    <link rel="stylesheet" type="text/css" href="../../../../style.css" />
   </head>
   <body>
     <div id="container">
       <header>
         <h1>
           <a href="/" title="Wifi Keyboard Control">CoLearn Web</a>
-          <span>Remote Video Keyboard Control</span>
+          <span>Remote Keyboard Control (WIFI + BLE)</span>
         </h1>
       </header>
 
       <main>
+        <section>
+          <h2>Mode Settings</h2>
+          <div>
+            <label for="hostSwitch">HOST</label>
+            <input type="radio" id="hostSwitch" name="modeSwitch" checked />
+            <label for="guestSwitch">GUEST</label>
+            <input type="radio" id="guestSwitch" name="modeSwitch" />
+          </div>
+        </section>
+
         <section>
           <h2>1. Find the robot and pair.</h2>
           <label for="robotSelect">Robot profile: </label>
@@ -26,23 +36,28 @@
           </select>
           <button id="pairButton">Pairing</button>
           <br />
-          <label for="">Connected Robot Name is </label>
-          <input
-            type="text"
-            id="robotNameInput"
-            value=""
-            placeholder=""
-            disabled
-          />
+          <div id="connectedRobotName">
+            <label for="">Connected Robot Name is </label>
+            <input
+              type="text"
+              id="robotNameInput"
+              value=""
+              placeholder=""
+              disabled
+            />
+          </div>
         </section>
 
         <section>
           <h2>2. Send the media server information to robot.</h2>
-          <label for="">SSID: </label>
-          <input type="text" id="ssidInput" value="" placeholder="" />
 
-          <label for="">Password: </label>
-          <input type="password" id="passwordInput" value="" placeholder="" />
+          <div id="advancedSettings">
+            <label for="">SSID: </label>
+            <input type="text" id="ssidInput" value="" placeholder="" />
+
+            <label for="">Password: </label>
+            <input type="password" id="passwordInput" value="" placeholder="" />
+          </div>
 
           <label for="">Host: </label>
           <input type="text" id="hostInput" value="" placeholder="" />
@@ -59,9 +74,8 @@
         </section>
 
         <section>
-          <h2>3. Send control command and Receive the video.</h2>
+          <h2>3. Send control command.</h2>
           <div class="box">
-            <video id="videoElement" autoplay></video>
             <textarea
               disabled
               name=""
@@ -71,6 +85,9 @@
             ></textarea>
           </div>
           <button id="openWebSocketButton">Open</button>
+          <button id="subscribeWebSocketButton" class="hidden">
+            Subscribe
+          </button>
           <button id="stopButton">Stop</button>
         </section>
       </main>

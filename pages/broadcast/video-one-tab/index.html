@@ -18,6 +18,16 @@
 
       <main>
         <section>
+          <h2>Mode Settings</h2>
+          <div>
+            <label for="hostSwitch">HOST</label>
+            <input type="radio" id="hostSwitch" name="modeSwitch" checked />
+            <label for="guestSwitch">GUEST</label>
+            <input type="radio" id="guestSwitch" name="modeSwitch" />
+          </div>
+        </section>
+
+        <section id="pairSection">
           <h2>1. Select elements</h2>
           <!-- check camera permission -->
           <button id="checkCameraPermissionButton">
@@ -35,8 +45,6 @@
             <option value="h264">h.264</option>
             <option value="vp8">vp8</option>
             <option value="vp9">vp9</option>
-            <!-- 굄 -->
-            <option value="av1">av1</option>
           </select>
 
           <label for="">Resolution</label>
@@ -49,7 +57,7 @@
           <input type="number" id="framerateInput" value="20" />
 
           <label for="">Keyframe Interval</label>
-          <input type="number" id="keyframeIntervalInput" value="30" />
+          <input type="number" id="keyframeIntervalInput" value="10" />
 
           <label for="">Bitrate Mode</label>
           <select id="bitrateModeSelect">
@@ -57,8 +65,10 @@
             <option value="quantizer">quantizer</option>
             <option value="variable">variable</option>
           </select>
+        </section>
 
-          <h2>2. Select the channel to use</h2>
+        <section>
+          <h2 id="channelSectionTitle">2. Select the channel to use</h2>
           <label for="">Host</label>
           <input type="text" id="hostInput" value="" placeholder="" />
 
@@ -70,14 +80,18 @@
 
           <label for="">Channel : </label>
           <select id="channelSelect"></select>
+        </section>
 
-          <h2>3. Publish and subscribe the video</h2>
+        <section>
+          <h2 id="publishSubscribeSectionTitle">
+            3. Publish and subscribe the video
+          </h2>
           <div class="box">
             <video id="videoElement" autoplay></video>
           </div>
 
           <button id="publishButton">Publish</button>
-          <button id="subscribeButton">Subscribe</button>
+          <button id="subscribeButton" class="hidden">Subscribe</button>
           <button id="stopButton">Stop</button>
         </section>
       </main>
