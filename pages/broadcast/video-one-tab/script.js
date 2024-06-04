@@ -2,8 +2,6 @@ import useMoth from "../../../modules/moth.js";
 import keepWebSocketAlive from "../../../modules/websocket.js";
 import { initializeDOMElements, initializeVariables } from "./initialize.js";
 
-console.log("Moth-sample repo");
-
 const videoWebCodecsMap = {
   h264: "avc1.42E03C",
   vp8: "vp8",
@@ -139,7 +137,10 @@ async function getVideoSrcObject() {
   return stream;
 }
 
+let isSending = false;
+
 async function publish() {
+  isSending = true;
   const stream = await getVideoSrcObject();
   const serverURL = useMoth.setServiceURL({
     type: "pub",
@@ -191,6 +192,11 @@ async function publish() {
     );
     keepWebSocketAlive(websocket);
   };
+
+  websocket.onclose = function () {
+    console.log("websocket closed");
+    isSending = false;
+  };
 }
 
 async function encode(
@@ -216,29 +222,23 @@ async function encode(
     },
   });
 
-  while (true) {
+  videoEncoder.configure(videoEncoderConfig);
+
+  while (websocket.OPEN && isSending) {
     const { done, value } = await reader.read();
 
     if (done) return;
-    if (videoEncoder.state === "closed") {
+    if (videoEncoder === null || videoEncoder.state === "closed") {
       value.close();
       return;
     }
 
     frameCounter++;
 
-    videoEncoder.configure(videoEncoderConfig);
-    console.log(videoEncoder.state);
-
     videoEncoder.encode(value, {
       keyFrame: frameCounter % keyFrameInterval === 0,
     });
 
-    // if (frameCounter % keyFrameInterval === 0) {
-    //   console.log("key frame sent");
-    // } else {
-    //   console.log("delta frame sent");
-    // }
     value.close();
   }
 }
@@ -257,7 +257,6 @@ async function subscribe() {
 
   websocket = new WebSocket(serverURL);
   websocket.binaryType = "arraybuffer";
-  // console.log(serverURL);
 
   let mediaStreamTrack = new MediaStreamTrackGenerator({
     kind: "video",
@@ -266,31 +265,32 @@ async function subscribe() {
   await writer.ready;
   videoElement.srcObject = new MediaStream([mediaStreamTrack]);
 
-  function handleChunk(frame) {
+  const handleChunk = (frame) => {
     if (frame && mediaStreamTrack) {
       writer.write(frame);
       frame.close();
     }
-  }
+  };
 
   const videoDecoder = new VideoDecoder({
     output: handleChunk,
     error: (err) => {
-      console.log(err);
+      console.error("VideoDecoder error:", err);
     },
   });
 
   let mimeType;
   let mimeOptionObj;
 
+  websocket.onopen = function () {
+    keepWebSocketAlive(websocket);
+  };
+
   websocket.onmessage = async function (e) {
     if (useMoth.isMimeMessage(e.data)) {
-      console.log("mime message received");
-      console.log(e.data);
       const { parsedMimeType, parsedMimeOptionObj } = useMoth.parseMime(e.data);
       mimeType = parsedMimeType;
       mimeOptionObj = parsedMimeOptionObj;
-
       const videoDecoderConfig = {
         codec: mimeOptionObj.codecs ?? "avc1.42E03C",
       };
@@ -300,12 +300,10 @@ async function subscribe() {
       if (await VideoDecoder.isConfigSupported(videoDecoderConfig)) {
         console.log("video decoder configuring...", videoDecoderConfig);
         videoDecoder.configure(videoDecoderConfig);
-        console.log(videoDecoder.state);
+      } else {
+        console.log("unsupported video decoder configuration");
       }
-      return;
-    }
-
-    if (useMoth.isEncodedMessage(e.data)) {
+    } else {
       const encodedChunk = new EncodedVideoChunk({
         type: "key",
         data: e.data,
@@ -316,7 +314,6 @@ async function subscribe() {
       videoDecoder.decode(encodedChunk);
     }
   };
-  keepWebSocketAlive(websocket);
 }
 
 function stop() {
