@@ -12,11 +12,7 @@ const writeGATTCharacteristic = async (txCharacteristic, chunk) => {
 /**
  * 블루투스 연결
  */
-async function connectToBluetoothDevice(
-  deviceNamePrefix,
-  serviceUUID,
-  txCharacteristicUUID
-) {
+async function connectToBluetoothDevice(deviceNamePrefix, serviceUUID) {
   const options = {
     filters: [
       { namePrefix: deviceNamePrefix },
@@ -28,18 +24,10 @@ async function connectToBluetoothDevice(
     let device = await navigator.bluetooth.requestDevice(options);
     console.log("Found Bluetooth device: ", device);
 
-    console.log("Connecting to GATT Server...");
-    const server = await device.gatt?.connect();
+    await device.gatt?.connect();
+    console.log("Connected to GATT server");
 
-    console.log("Getting UART Service...");
-    const service = await server?.getPrimaryService(serviceUUID);
-
-    console.log("Getting UART TX Characteristic...");
-    const txCharacteristic = await service?.getCharacteristic(
-      txCharacteristicUUID
-    );
-    console.log("txCharacteristic: ", txCharacteristic);
-    return { device, txCharacteristic };
+    return device;
   } catch (error) {
     console.error(error);
   }
@@ -61,8 +49,10 @@ function disconnectFromBluetoothDevice(device) {
  */
 async function sendMessageToDeviceOverBluetooth(
   message,
+  device,
   maxTransferSize = 15,
-  txCharacteristic
+  serviceUUID,
+  txCharacteristicUUID
 ) {
   const MAX_MESSAGE_LENGTH = maxTransferSize;
   const messageArray = [];
@@ -81,6 +71,17 @@ async function sendMessageToDeviceOverBluetooth(
     }
   }
 
+  console.log("Connecting to GATT Server...");
+  const server = await device.gatt?.connect();
+
+  console.log("Getting UART Service...");
+  const service = await server?.getPrimaryService(serviceUUID);
+
+  console.log("Getting UART RX Characteristic...");
+  const txCharacteristic = await service?.getCharacteristic(
+    txCharacteristicUUID
+  );
+
   // Check GATT operations is ready to write
   if (txCharacteristic?.properties.write) {
     for (const chunk of messageArray) {
@@ -92,7 +93,23 @@ async function sendMessageToDeviceOverBluetooth(
 /**
  * 길이 제한이 없는 text를 전송할 때 사용
  */
-async function sendTextToDeviceOverBluetooth(text, txCharacteristic) {
+async function sendTextToDeviceOverBluetooth(
+  text,
+  device,
+  serviceUUID,
+  txCharacteristicUUID
+) {
+  console.log("Connecting to GATT Server...");
+  const server = await device.gatt?.connect();
+
+  console.log("Getting UART Service...");
+  const service = await server?.getPrimaryService(serviceUUID);
+
+  console.log("Getting UART RX Characteristic...");
+  const txCharacteristic = await service?.getCharacteristic(
+    txCharacteristicUUID
+  );
+
   await writeGATTCharacteristic(txCharacteristic, text);
 }
 

@@ -3,19 +3,13 @@ import useMoth from "./modules/moth.js";
 import { deviceControlMap } from "./modules/deviceProfile.js";
 import keepWebSocketAlive from "./modules/websocket.js";
 
-import {
-  GestureRecognizer,
-  FilesetResolver,
-  DrawingUtils,
-} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2";
-
 // tmp데이터====================================================
 const ssidInput = document.getElementById("ssidInput");
 const passwordInput = document.getElementById("passwordInput");
 const hostInput = document.getElementById("hostInput");
 const portInput = document.getElementById("portInput");
 
-ssidInput.value = "TeamGRITax";
+// ssidInput.value = "TeamGRITax";
 passwordInput.value = "teamgrit8266";
 hostInput.value = "cobot.center";
 portInput.value = 8286;
@@ -26,8 +20,6 @@ const {
   openWebSocketButton,
   stopButton,
   videoElement,
-  userVideoElement,
-  showCameraButton,
 } = initializeDOMElements();
 let {
   device,
@@ -37,8 +29,6 @@ let {
   selectedDeviceControlMap,
   writer,
   mediaStreamTrack,
-  gestureRecognizer,
-  runningMode,
 } = initializeVariables();
 
 function initializeDOMElements() {
@@ -49,8 +39,6 @@ function initializeDOMElements() {
   const openWebSocketButton = document.getElementById("openWebSocketButton");
   const stopButton = document.getElementById("stopButton");
   const videoElement = document.getElementById("videoElement");
-  const userVideoElement = document.getElementById("userVideoElement");
-  const showCameraButton = document.getElementById("showCamera");
 
   return {
     pairButton,
@@ -58,8 +46,6 @@ function initializeDOMElements() {
     openWebSocketButton,
     stopButton,
     videoElement,
-    userVideoElement,
-    showCameraButton,
   };
 }
 
@@ -71,8 +57,6 @@ function initializeVariables() {
   let lastDirection;
   let writer;
   let mediaStreamTrack;
-  let gestureRecognizer;
-  let runningMode = "IMAGE";
 
   return {
     device,
@@ -82,121 +66,9 @@ function initializeVariables() {
     lastDirection,
     writer,
     mediaStreamTrack,
-    gestureRecognizer,
-    runningMode,
   };
 }
 
-/**
- * create gesture recognizer
- */
-async function createGestureRecognizer() {
-  const vision = await FilesetResolver.forVisionTasks(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2/wasm"
-  );
-  gestureRecognizer = await GestureRecognizer.createFromOptions(vision, {
-    baseOptions: {
-      modelAssetPath:
-        "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task",
-      delegate: "GPU",
-    },
-    runningMode: runningMode,
-  });
-}
-
-async function detectHandGestureFromVideo(gestureRecognizer, stream) {
-  if (!gestureRecognizer) return;
-
-  const videoTrack = stream.getVideoTracks()[0];
-  const capturedImage = new ImageCapture(videoTrack);
-  while (true) {
-    await capturedImage.grabFrame().then((imageBitmap) => {
-      const detectedGestures = gestureRecognizer.recognize(imageBitmap);
-
-      const { gestures } = detectedGestures;
-
-      if (gestures[0]) {
-        const gesture = gestures[0][0].categoryName;
-        const controlCommandMap =
-          selectedDeviceControlMap.controlCommandMap.handGesture.direction;
-        if (Object.keys(controlCommandMap).includes(gesture)) {
-          const direction = controlCommandMap[gesture];
-          if (direction !== lastDirection) {
-            lastDirection = direction;
-
-            const controlCommand = {
-              type: "control",
-              direction,
-            };
-            if (websocket && websocket.readyState === WebSocket.OPEN) {
-              const encoder = new TextEncoder();
-              const encodedCommand = encoder.encode(
-                JSON.stringify(controlCommand)
-              );
-              websocket.send(encodedCommand);
-              displayMessage(`Send '${direction}' command`);
-            }
-          }
-        }
-      }
-    });
-  }
-}
-
-/**
- * get camera device list and update camera select option
- */
-async function findCameraDevice() {
-  try {
-    await navigator.permissions.query({ name: "camera" });
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    devices.forEach((device) => {
-      if (device.kind === "videoinput") {
-        updateCameraSelection(device);
-      }
-    });
-  } catch (err) {
-    console.log(err.name + ": " + err.message);
-  }
-}
-
-function updateCameraSelection(device) {
-  const cameraSelect = document.getElementById("cameraSelect");
-  const option = document.createElement("option");
-  option.value = device.deviceId;
-  option.text = device.label;
-  cameraSelect.appendChild(option);
-}
-
-async function getVideoSrcObject() {
-  const cameraSelect = document.getElementById("cameraSelect");
-  const cameraId = cameraSelect.value;
-  const constraints = {
-    audio: false,
-    video: {
-      deviceId: cameraId,
-    },
-  };
-
-  const stream = await navigator.mediaDevices
-    .getUserMedia(constraints)
-    .then(async (stream) => {
-      userVideoElement.srcObject = stream;
-
-      await createGestureRecognizer().then(() => {
-        detectHandGestureFromVideo(gestureRecognizer, stream);
-      });
-    })
-    .catch((error) => {
-      console.log(error);
-    });
-
-  return stream;
-}
-
-/**
- * connect to bluetooth device and set device control map
- */
 async function bluetoothPairing() {
   const robotSelect = document.getElementById("robotSelect");
   const robotNameInput = document.getElementById("robotNameInput");
@@ -208,9 +80,6 @@ async function bluetoothPairing() {
   robotNameInput.value = device.name;
 }
 
-/**
- * send media server info to device
- */
 async function sendMediaServerInfo() {
   mediaStreamTrack = new MediaStreamTrackGenerator({
     kind: "video",
@@ -289,7 +158,12 @@ async function openWebSocket() {
 
   websocket = new WebSocket(serverURL);
   websocket.binaryType = "arraybuffer";
-
+  websocket.onopen = () => {
+    if (device) {
+      document.addEventListener("keydown", handleKeyDown);
+      document.addEventListener("keyup", handleKeyUp);
+    }
+  };
   displayMessage("Open Video WebSocket");
 
   const videoDecoder = new VideoDecoder({
@@ -352,6 +226,40 @@ function stop() {
   useBluetooth.disconnectFromBluetoothDevice(device);
 }
 
+async function handleKeyDown(e) {
+  const controlCommandMap =
+    selectedDeviceControlMap.controlCommandMap.keyboard.direction;
+  const direction = controlCommandMap[e.code];
+  if (direction === lastDirection) return;
+  lastDirection = direction;
+
+  const controlCommand = {
+    type: "control",
+    direction,
+  };
+
+  if (websocket && websocket.readyState === WebSocket.OPEN) {
+    websocket.send(new TextEncoder().encode(JSON.stringify(controlCommand)));
+    displayMessage(direction);
+  }
+}
+
+async function handleKeyUp(e) {
+  const direction = selectedDeviceControlMap.stopCommand;
+  if (direction === lastDirection) return;
+  lastDirection = direction;
+
+  const controlCommand = {
+    type: "control",
+    direction,
+  };
+
+  if (websocket && websocket.readyState === WebSocket.OPEN) {
+    websocket.send(new TextEncoder().encode(JSON.stringify(controlCommand)));
+    displayMessage(direction);
+  }
+}
+
 function displayMessage(messageContent) {
   const messageView = document.getElementById("messageView");
 
@@ -367,8 +275,6 @@ document.addEventListener("DOMContentLoaded", () => {
   sendMediaServerInfoButton.addEventListener("click", sendMediaServerInfo);
   openWebSocketButton.addEventListener("click", openWebSocket);
   stopButton.addEventListener("click", stop);
-  checkCameraPermissionButton.addEventListener("click", findCameraDevice);
-  showCameraButton.addEventListener("click", getVideoSrcObject);
 });
 
 videoElement.onloadedmetadata = () => {
