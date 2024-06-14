@@ -29,9 +29,6 @@ const {
   pairSection,
 } = initializeDOMElements();
 
-hostInput.value = "cobot.center";
-portInput.value = 8286;
-
 let { websocket } = initializeVariables();
 
 function makeResolutionOptions() {
@@ -57,7 +54,7 @@ async function checkCameraPermission() {
         cameraPermissionLabel.innerHTML = result.state;
         console.log("Camera access granted.");
       } catch (error) {
-        console.log("Camera access denied.");
+        console.error("Camera access denied.");
       }
     }
     await findCameraDevice();
@@ -75,7 +72,7 @@ async function findCameraDevice() {
       }
     });
   } catch (err) {
-    console.log(err.name + ": " + err.message);
+    console.error(err.name + ": " + err.message);
   }
 }
 
@@ -111,7 +108,7 @@ async function findChannels() {
       channelSelect.appendChild(option);
     });
   } catch (error) {
-    console.log(error);
+    console.error(error);
   }
 }
 
@@ -131,7 +128,7 @@ async function getVideoSrcObject() {
       return stream;
     })
     .catch((error) => {
-      console.log(error);
+      console.error(error);
     });
 
   return stream;
@@ -204,17 +201,17 @@ async function encode(
   const videoTrack = stream.getVideoTracks()[0];
   const trackProcessor = new MediaStreamTrackProcessor(videoTrack);
   const reader = trackProcessor.readable.getReader();
+  let frameCounter = 0;
 
   if (!(await VideoEncoder.isConfigSupported(videoEncoderConfig))) {
-    throw new Error("Unsupported video encoder configuration.");
+    console.error("Unsupported video encoder configuration.");
+    return;
   }
-
-  let frameCounter = 0;
 
   const videoEncoder = new VideoEncoder({
     output: handleChunk,
     error: (err) => {
-      console.log(err);
+      console.error(err);
     },
   });
 
@@ -261,7 +258,7 @@ async function subscribe() {
   await writer.ready;
   videoElement.srcObject = new MediaStream([mediaStreamTrack]);
 
-  const handleChunk = (frame) => {
+  const handleChunk = function (frame) {
     if (frame && mediaStreamTrack) {
       writer.write(frame);
       frame.close();
@@ -294,7 +291,7 @@ async function subscribe() {
       if (videoDecoderConfig.codec.includes("jpeg")) return;
 
       if (await VideoDecoder.isConfigSupported(videoDecoderConfig)) {
-        console.log("video decoder configuring...", videoDecoderConfig);
+        console.log("video decoder configuring...", videoDecoderConfig.codec);
         videoDecoder.configure(videoDecoderConfig);
       } else {
         console.log("unsupported video decoder configuration");
