@@ -6,16 +6,16 @@ const HM10_CHARACTERISTIC_UUID = "0000ffe1-0000-1000-8000-00805f9b34fb";
 
 export const deviceLabels = [
   {
-    label: "Lego Cobot",
-    value: "COBOT_PRO_001",
+    label: "CoBot-Pro",
+    value: "CoBot_Pro",
   },
   {
-    label: "Junbook",
-    value: "JUNBOOK",
+    label: "CoBot-ESP32",
+    value: "CoBot_ESP32",
   },
 ];
 
-const COBOT_PRO_001 = {
+const CoBot_Pro = {
   namePrefix: "BBC",
   controlType: ["direction"],
   hasBluetoothSetting: true,
@@ -46,7 +46,7 @@ const COBOT_PRO_001 = {
   stopCommand: "STOP",
 };
 
-const JUNBOOK = {
+const CoBot_ESP32 = {
   namePrefix: "CoPlay",
   controlType: ["direction"],
   hasBluetoothSetting: true,
@@ -113,8 +113,8 @@ const XROVER_GRIPPER = {
 };
 
 export const deviceControlMap = {
-  COBOT_PRO_001,
-  JUNBOOK,
+  CoBot_Pro,
+  CoBot_ESP32,
   XROVER_DOT,
   XROVER_GRIPPER,
 };
