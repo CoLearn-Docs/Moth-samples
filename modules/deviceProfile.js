@@ -63,6 +63,15 @@ const CoBot_ESP32 = {
         KeyD: "CW",
       },
     },
+    handGesture: {
+      direction: {
+        Closed_Fist: "N",
+        Open_Palm: "CCW",
+        Pointing_Up: "S",
+        Thumb_Up: "CW",
+        Victory: "STOP",
+      },
+    },
   },
   stopCommand: "STOP",
 };
